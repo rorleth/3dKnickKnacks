@@ -1,11 +1,11 @@
 baseThickness = 9;
 baseDiameter = 42;
 knobHeight = 8;
-knobFlatThickness = 5.5;
-knobDiameter = 6.2;
-knobSlotWidth = 1;
+knobFlatThickness = 6;
+knobDiameter = 7;
+knobSlotWidth = 0.8;
 knobSlotDepth = 5.5;
-handleHeight = 8;
+handleHeight = 15;
 handleWidth = 5;
 
 $fn = 50;
@@ -25,7 +25,7 @@ module twistKnob()
                 knobFlattener();
             translate([-knobDiameter/2, -knobFlatThickness/2-knobDiameter, 0])
                 knobFlattener();
-            translate([-knobDiameter/2, -knobSlotWidth/2, 0])
+            translate([-knobDiameter/2, -knobSlotWidth/2, knobHeight - knobSlotDepth])
                 cube([knobDiameter, knobSlotWidth, knobSlotDepth], center=false);
         }
    }
@@ -40,14 +40,14 @@ module handleEdge()
 
 module handle()
 {
-    translate([baseDiameter/2- handleHeight/2, handleWidth/2, 0])
+    translate([baseDiameter/2- handleHeight, handleWidth/2, 0])
         rotate([90,0,0])
             handleEdge();
-    translate([-(baseDiameter/2- handleHeight/2), -handleWidth/2, 0])
+    translate([-(baseDiameter/2- handleHeight), -handleWidth/2, 0])
         rotate([90,0,180])
             handleEdge();
-    translate([-(baseDiameter-handleHeight)/2, -handleWidth/2, 0])
-        cube([baseDiameter - handleHeight, handleWidth, knobHeight], center = false);
+    translate([-baseDiameter/2 +handleHeight, -handleWidth/2, 0])
+        cube([baseDiameter - 2*handleHeight, handleWidth, handleHeight], center = false);
 }
 
 difference()
@@ -57,3 +57,5 @@ difference()
 }
 translate([0,0,baseThickness])
     handle();
+
+//twistKnob();
