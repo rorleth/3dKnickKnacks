@@ -1,8 +1,8 @@
 baseThickness = 9;
 baseDiameter = 42;
 knobHeight = 8;
-knobFlatThickness = 6;
-knobDiameter = 7;
+knobFlatThickness = 5.5;
+knobDiameter = 6.5;
 knobSlotWidth = 0.8;
 knobSlotDepth = 5.5;
 handleHeight = 15;
@@ -25,8 +25,8 @@ module twistKnob()
                 knobFlattener();
             translate([-knobDiameter/2, -knobFlatThickness/2-knobDiameter, 0])
                 knobFlattener();
-            translate([-knobDiameter/2, -knobSlotWidth/2, knobHeight - knobSlotDepth])
-                cube([knobDiameter, knobSlotWidth, knobSlotDepth], center=false);
+            //translate([-knobDiameter/2, -knobSlotWidth/2, knobHeight - knobSlotDepth])
+                //cube([knobDiameter, knobSlotWidth, knobSlotDepth], center=false);
         }
    }
 }
