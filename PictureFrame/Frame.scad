@@ -15,7 +15,11 @@ picture_thickness =1;  // Thickness of the picture
 foam_spacer_thickness = 1; // Thickness of foam spacer
 backing_thickness = 2;    // Thickness of backing board
 
+hanger_option = "hole"; // [hole, tab, none]
 hanger_cutout_diameter = 5; // Diameter of the hanger cutout on the backing board
+hanger_overlap = 2; // Overlap of hanger backside to diameter of hanger cutout
+hanger_thickness = 2; // Thickness of the hanger structure
+hanger_depth = 4; // Depth of the hanger cutout
 landscape_mode = true; // Whether to make the frame in landscape mode
 make_backing_insert = false; // Whether to make a backing insert
 
@@ -28,6 +32,7 @@ $fn=50;
 // assumption is that backing board is flush with back of frame and has a 45degree cut to hold onto frame
 backing_groove_depth = 1;  // Depth of the groove that the backing board slides into
 backplate_play = 0.1; // Extra space for the backing plate to fit easily
+hanger_length = 10; // Length of the hanger structure
 
 art_width = art_width_inches * mm_per_inch;
 art_height = art_height_inches * mm_per_inch;   
@@ -45,21 +50,74 @@ module frameBevel(length, width, height) {
             ]);
 }
 
+module tabSide()
+{
+    !difference()
+    {
+        cube([hanger_length, hanger_cutout_diameter/2 + hanger_thickness, hanger_depth], center = false);
+        cube([hanger_length, hanger_cutout_diameter/2, hanger_depth-hanger_overlap], center=false);
+    }
+}
+module tabHanger(length, width)
+{
+    // make a structure to hang the frame from, using two l-shaped plate with an inner
+    // space of hanger_cutout_diameter and depth hanger_depth, topped by a half-cylinder
+    // at the top
+    translate([hanger_length/2,0,(hanger_depth+hanger_thickness)/2])
+    union()
+    {
+        difference()
+        {
+            // outer cube
+            cube([hanger_length, hanger_cutout_diameter + 2* hanger_thickness, hanger_depth+hanger_thickness], center = true);
+            // cut away the cube under the overlap
+            translate([0,0,-hanger_depth/2])
+                cube([hanger_length, hanger_cutout_diameter, hanger_depth], center=true);
+            // cut away the cub that opens the hanger
+            translate([0,0,0 ])
+                cube([hanger_length, hanger_cutout_diameter- hanger_overlap, hanger_depth+hanger_thickness], center=true);
+        }
+        // top end with half-cylinder
+        translate([-(hanger_length)/2,0,0])
+            difference()
+            {
+                cylinder(h=hanger_depth+hanger_thickness, r=hanger_cutout_diameter/2 + hanger_thickness, center=true);
+                translate([0,0,-hanger_thickness/2])
+                    cylinder(h=hanger_depth,r=hanger_cutout_diameter/2, center=true);
+                cylinder(h=hanger_depth+hanger_thickness, r=hanger_cutout_diameter/2 - hanger_overlap/2, center=true);
+                translate([(hanger_cutout_diameter/2 + 2*hanger_thickness)/2,0,0])
+                    cube([hanger_cutout_diameter/2 + 2*hanger_thickness, hanger_cutout_diameter + 2* hanger_thickness,hanger_depth+hanger_thickness], center=true);
+            }
+    }
+}
+
 module backplateBevel(length, width, negative)
 {
     effective_width = negative ? width + 2*backplate_play : width - 2*backplate_play;
     difference()
     {
-        linear_extrude(height = length)
-            polygon([
-                [0, 0],
-                [-backing_groove_depth, backing_thickness],
-                [effective_width + backing_groove_depth, backing_thickness],
-                [effective_width, 0]
-            ]);
-        translate([effective_width/2, backing_thickness/2, 0.8 * length - hanger_cutout_diameter])
-            rotate([90,0,0])
-                cylinder(h=backing_thickness, r=hanger_cutout_diameter/2, center=true);
+        union()
+        {
+            linear_extrude(height = negative ? length + backplate_play : length)
+                polygon([
+                    [0, 0],
+                    [-backing_groove_depth, backing_thickness],
+                    [effective_width + backing_groove_depth, backing_thickness],
+                    [effective_width, 0]
+                ]);
+            if (hanger_option == "tab" && !negative)
+            {
+                translate([effective_width/2, 0, 0.8 * length - hanger_cutout_diameter])
+                    rotate([0,90,-90])
+                        tabHanger(10, backing_thickness);
+            }
+        }
+        if (hanger_option == "hole" && !negative)
+        {
+            translate([effective_width/2, backing_thickness/2, 0.8 * length - hanger_cutout_diameter])
+                rotate([90,0,0])
+                    cylinder(h=backing_thickness, r=hanger_cutout_diameter/2, center=true);
+        }
     }
 }
 
@@ -110,7 +168,7 @@ module frameAssembly()
                     cube([art_width + 2*frame_front_width, art_height + 2*frame_front_width, frame_front_thickness], center=true);
                     cube([art_width - 2* internal_glass_overlap, art_height - 2* internal_glass_overlap, frame_front_thickness], center=true);
                 }
-            translate([0, 0, framebody_z_dimension/2 + frame_front_thickness])
+            translate([0, 0, framebody_z_dimension/2 + frame_front_thickness/2])
                 intersection()
                 {
                     difference()
