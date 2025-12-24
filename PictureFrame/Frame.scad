@@ -1,12 +1,12 @@
-// Picture Frame Generator
-// Parameters for art dimensions
+// Picture Frame Generator - Copyright 2026 by Robert Orleth
+use <caption.scad>;
+use <roundedcube.scad>;
 
+/* [Frame] */
 art_width_inches = 7.1;
 art_height_inches = 5.1;
-
-// Frame parameters
 frame_side_thickness = 10;  // Thickness of the sides of the frame in x/y direction
-frame_front_width = 20;     // Width of frame border
+frame_front_width = 13;     // Width of frame border
 internal_glass_overlap = 3; // How much the border overlaps the glass
 frame_front_thickness = 3;  // distance from front of frame to the glass
 frame_deco_thickness = 1;  // Thickness of the front decorative part of the frame
@@ -14,20 +14,31 @@ glass_thickness = 3;   // Thickness of glass pane
 picture_thickness =1;  // Thickness of the picture
 foam_spacer_thickness = 1; // Thickness of foam spacer
 backing_thickness = 2;    // Thickness of backing board
+landscape_mode = true; // Whether to make the frame in landscape mode
 
+/* [Decoration] */
+front_decoration= "svg"; // [svg, png, mould, none ]
+overlay_filename = "wood.svg";
+caption = "2025";
+caption_location = "bottom"; // [top, bottom, none]
+caption_font = "Impact";
+caption_font_size = 16;
+caption_elevation = 2; // How high the caption is elevated over the baseplate
+caption_border_thickness = 1; // Thickness of border around caption
+
+/* [Hanger] */
+make_backing_insert = false; // Whether to make a backing insert
 hanger_option = "hole"; // [hole, tab, stand, none]
 hanger_nailhead_diameter = 5; // Diameter of the hanger cutout on the backing board
 hanger_nailbody_diameter = 2; // Diameter of the nail body that goes into the hanger cutout
 hanger_nailhead_thickness = 2; // Depth of the hanger cutout
 hanger_thickness = 2; // Thickness of the hanger structure
-landscape_mode = true; // Whether to make the frame in landscape mode
-make_backing_insert = false; // Whether to make a backing insert
-front_decoration= "svg"; // [svg, png, mould, none ]
-overlay_filename = "wood.svg";
+
 
 module stopthecustomizer() {
    // This module is intentionally left empty to stop customizer issues
 }
+
 mm_per_inch = 25.4;
 $fn=50;
 backing_groove_depth = 1;  // Depth of the groove that the backing board slides into
@@ -40,15 +51,15 @@ art_height = art_height_inches * mm_per_inch;
 framebody_z_dimension = glass_thickness + picture_thickness + foam_spacer_thickness + backing_thickness;
 
 mounting_point_percentage = 0.8; // percentage along the top edge to place the mounting point
-frame_angle_degrees = 50; // to calculate the stand
+frame_angle_degrees = 70; // to calculate the stand
 
 
 
+// make a structure to hang the frame from, using two l-shaped plate with an inner
+// space of hanger_nailhead_diameter and depth hanger_nailhead_thickness, topped by a half-cylinder
+// at the top
 module tabHanger(length, width)
 {
-    // make a structure to hang the frame from, using two l-shaped plate with an inner
-    // space of hanger_nailhead_diameter and depth hanger_nailhead_thickness, topped by a half-cylinder
-    // at the top
     translate([hanger_length/2,0,(hanger_nailhead_thickness+hanger_thickness)/2])
     union()
     {
@@ -77,9 +88,10 @@ module tabHanger(length, width)
     }
 }
 
+// make a stand that props the frame up at the given angle
 module frameStand(stand_length)
 {
-    // make a stand that props the frame up at an angle
+    // how far out does the foot of the stand reach
     length_foot = stand_length * cos(frame_angle_degrees);
     
     // make a triangular prism for the stand
@@ -92,7 +104,7 @@ module frameStand(stand_length)
             ]);
 }
 
-module backplateBevel(length, width, negative)
+module backplateAssembly(length, width, negative)
 {
     effective_width = negative ? width + 2*backplate_play : width - 2*backplate_play;
     difference()
@@ -137,19 +149,21 @@ module backplateBevel(length, width, negative)
     }
 }
 
+// produces the backplate, negative = true makes the cutout for the frame which needs to a little bigger
 module backplate(negative)
 {
     if (landscape_mode) {
        translate([-art_width/2,0, 0])
             rotate([90,0,90])
-                backplateBevel(art_width+frame_side_thickness, art_height, negative);
+                backplateAssembly(art_width+frame_side_thickness, art_height, negative);
     } else {
         translate([-art_width/2, art_height , 0])
             rotate([90,0,0])
-                backplateBevel(art_height+frame_side_thickness, art_width, negative);
+                backplateAssembly(art_height+frame_side_thickness, art_width, negative);
     }
 }
-// produces one side of the frame with 45 degree bevels at each end
+
+// produces one piece of the frame, a cube ith 45 degree bevels at each end
 module frameBevel(length, width, height) {
     translate([-(length+2*width)/2,-width/2,0])
         linear_extrude(height = height)
@@ -160,6 +174,7 @@ module frameBevel(length, width, height) {
                 [width, width]
             ]);
 }
+// produces one side of the frame, consisting of the frame body and the front plate that's holding in the glass
 module frameSide(internal_length) {
     union()
     {
@@ -171,7 +186,9 @@ module frameSide(internal_length) {
     }
 }
 
-module frameAssembly()
+// assembles the frame from four sides and adds decoration. Specifically does NOT add a caption plate
+// as that needs cutting into the decoration.
+module frameWithDecoration()
 {
     if (front_decoration == "svg" || front_decoration == "png")
     {
@@ -236,15 +253,43 @@ module frameAssembly()
         }
     }
 }
+function captionTranslateVector(location) = 
+    location == "top" ? 
+        [0, art_height + frame_front_width/2, framebody_z_dimension + frame_front_thickness/2]:
+        [0, -frame_front_width/2, framebody_z_dimension + frame_front_thickness/2];
+
+module addCaption()
+{  
+    if (caption_location != "none")
+    {
+        tv = captionTranslateVector(caption_location);
+
+        translate(tv)
+            caption_plate(caption,  caption_font, caption_font_size,caption_elevation, caption_border_thickness);
+
+        difference()
+        {
+            children();
+            translate(tv)
+                linear_extrude(height = 100)// remove material where the caption goes
+                    text_area(caption, caption_font, caption_font_size);
+        }
+    }
+    else
+    {
+        children();
+    }
+}
+
 
 if (!make_backing_insert)
 {
     difference()
     {
-        frameAssembly();    
-        backplate(true);
+        addCaption()
+            frameWithDecoration();    
+        backplate(true); // cutout for the backplate
     }
 } else {
-    //frameStand(100);
     backplate(false);
 }
