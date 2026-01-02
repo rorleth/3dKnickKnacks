@@ -14,11 +14,11 @@ glass_thickness = 3;   // Thickness of glass pane
 picture_thickness =1;  // Thickness of the picture
 foam_spacer_thickness = 1; // Thickness of foam spacer
 backing_thickness = 2;    // Thickness of backing board
-landscape_mode = true; // Whether to make the frame in landscape mode
 
 /* [Decoration] */
 front_decoration= "svg"; // [svg, png, mould, none ]
 overlay_filename = "wood.svg";
+moulding = "none"; // [none, round, teardrop]
 caption = "2025";
 caption_location = "bottom"; // [top, bottom, none]
 caption_font = "Impact";
@@ -53,7 +53,7 @@ framebody_z_dimension = glass_thickness + picture_thickness + foam_spacer_thickn
 mounting_point_percentage = 0.8; // percentage along the top edge to place the mounting point
 frame_angle_degrees = 70; // to calculate the stand
 
-
+text_margin = 2; // margin between text and edge of caption plate
 
 // make a structure to hang the frame from, using two l-shaped plate with an inner
 // space of hanger_nailhead_diameter and depth hanger_nailhead_thickness, topped by a half-cylinder
@@ -152,18 +152,12 @@ module backplateAssembly(length, width, negative)
 // produces the backplate, negative = true makes the cutout for the frame which needs to a little bigger
 module backplate(negative)
 {
-    if (landscape_mode) {
-       translate([-art_width/2,0, 0])
-            rotate([90,0,90])
-                backplateAssembly(art_width+frame_side_thickness, art_height, negative);
-    } else {
-        translate([-art_width/2, art_height , 0])
-            rotate([90,0,0])
-                backplateAssembly(art_height+frame_side_thickness, art_width, negative);
-    }
+    translate([-art_width/2, art_height/2, 0])
+        rotate([90,0,0])
+            backplateAssembly(art_height+frame_side_thickness, art_width, negative);
 }
 
-// produces one piece of the frame, a cube ith 45 degree bevels at each end
+// produces one piece of the frame, a cube with 45 degree bevels at each end
 module frameBevel(length, width, height) {
     translate([-(length+2*width)/2,-width/2,0])
         linear_extrude(height = height)
@@ -178,11 +172,50 @@ module frameBevel(length, width, height) {
 module frameSide(internal_length) {
     union()
     {
+        // side of the frame
         frameBevel(internal_length, frame_side_thickness, framebody_z_dimension);
 
+        // the overlapping front piece that holds the glass
         translate([0, -frame_front_width/2 + frame_side_thickness/2 + internal_glass_overlap, framebody_z_dimension])
             frameBevel(internal_length-2*internal_glass_overlap, frame_front_width, frame_front_thickness); 
-        // todo : add moulding
+
+        if (moulding == "round")
+        {
+            // add a half-cylinder as decoration
+            intersection()
+            {
+                translate([0, -frame_front_width/2 + frame_side_thickness/2 + internal_glass_overlap, framebody_z_dimension+frame_front_thickness])
+                    frameBevel(internal_length, frame_front_width, 100); 
+                #translate([0, -frame_front_width/2 + frame_side_thickness/2 + internal_glass_overlap, framebody_z_dimension+frame_front_thickness])
+                    rotate([0,90,0])
+                        difference()
+                        {
+                            translate([0,0,frame_front_width/2])
+                                cylinder(h=internal_length+2*frame_front_width, r=frame_front_width/2, center=true);
+                            translate([frame_front_width/4,frame_front_width/2,frame_front_width/2])
+                                rotate([0,90,0])
+                                    cube([internal_length+2*frame_front_width, frame_front_width, frame_front_width/2], center=true);
+                        };
+            }
+        }
+        else if (moulding == "teardrop")
+        {
+            intersection()
+            {
+                // this is the limiting cube
+                translate([0, -frame_front_width/2 + frame_side_thickness/2 + internal_glass_overlap, framebody_z_dimension+frame_front_thickness])
+                    frameBevel(internal_length-2*internal_glass_overlap, frame_front_width, 100);             
+                
+                // teardrop moulding from svg
+                translate( [internal_length/2 + frame_front_width, 
+                            frame_front_width/2 +internal_glass_overlap/2,
+                            framebody_z_dimension+frame_front_thickness])
+                    rotate([90,0,-90])
+                        resize([frame_front_width, frame_deco_thickness, 0], auto=false)
+                            linear_extrude(height = internal_length + 2*frame_front_width)
+                                import(file = "teardrop-shape.svg");
+            }                
+        }
     }
 }
 
@@ -194,7 +227,7 @@ module frameWithDecoration()
     {
         // make the frame from two cubes, then overlay the front that holds the glass
         // advantage: can overlay an svg on top of the front piece as this doesn't involve rotation
-        translate([0, art_height/2, framebody_z_dimension/2])
+        translate([0, 0, framebody_z_dimension/2])
             union()
             {
                 difference()
@@ -230,33 +263,34 @@ module frameWithDecoration()
                     }
             }
     } 
-    else if (front_decoration == "mould") 
+    else if (front_decoration == "mould" || front_decoration == "none") 
     {
         // this asssembles the frame from four pieces of side each of which come with their aligned decorative front
         union()
         {
             // Top frame side
-            translate([0, art_height + frame_side_thickness/2, 0])
+            translate([0, (art_height + frame_side_thickness)/2, 0])
                 rotate([0,0,180])
                     frameSide(art_width);
             // Bottom frame side
-            translate([0, -frame_side_thickness/2, 0])
+            translate([0, -(art_height + frame_side_thickness)/2, 0])
                     frameSide(art_width);
             // Left frame side
-            translate([-art_width/2-frame_side_thickness/2, art_height/2, 0])
+            translate([-(art_width+ frame_side_thickness)/2, 0, 0])
                 rotate([0,0,-90])
                     frameSide(art_height);
             // Right frame side
-            translate([art_width/2 + frame_side_thickness/2, art_height/2, 0])
+            translate([(art_width + frame_side_thickness)/2, 0, 0])
                 rotate([0,0,90])
                     frameSide(art_height);
         }
     }
 }
+
 function captionTranslateVector(location) = 
     location == "top" ? 
-        [0, art_height + frame_front_width/2, framebody_z_dimension + frame_front_thickness/2]:
-        [0, -frame_front_width/2, framebody_z_dimension + frame_front_thickness/2];
+        [0, (art_height + frame_front_width)/2 - text_margin*1.5, framebody_z_dimension + frame_front_thickness/2]:
+        [0, -(art_height + frame_front_width)/2 + text_margin*1.5, framebody_z_dimension + frame_front_thickness/2];
 
 module addCaption()
 {  
@@ -265,14 +299,14 @@ module addCaption()
         tv = captionTranslateVector(caption_location);
 
         translate(tv)
-            caption_plate(caption,  caption_font, caption_font_size,caption_elevation, caption_border_thickness);
+            caption_plate(caption,  caption_font, caption_font_size, caption_elevation, caption_border_thickness, text_margin);
 
         difference()
         {
             children();
             translate(tv)
                 linear_extrude(height = 100)// remove material where the caption goes
-                    text_area(caption, caption_font, caption_font_size);
+                    text_area(caption, caption_font, caption_font_size, text_margin);
         }
     }
     else
