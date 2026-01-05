@@ -175,9 +175,12 @@ module frameSide(internal_length) {
         // side of the frame
         frameBevel(internal_length, frame_side_thickness, framebody_z_dimension);
 
-        // the overlapping front piece that holds the glass
-        translate([0, -frame_front_width/2 + frame_side_thickness/2 + internal_glass_overlap, framebody_z_dimension])
-            frameBevel(internal_length-2*internal_glass_overlap, frame_front_width, frame_front_thickness); 
+        if (moulding == "none")
+        {
+            // the overlapping front piece that holds the glass
+            translate([0, -frame_front_width/2 + frame_side_thickness/2 + internal_glass_overlap, framebody_z_dimension])
+                frameBevel(internal_length-2*internal_glass_overlap, frame_front_width, frame_front_thickness); 
+        }
 
         if (moulding == "round")
         {
@@ -203,15 +206,15 @@ module frameSide(internal_length) {
             intersection()
             {
                 // this is the limiting cube
-                translate([0, -frame_front_width/2 + frame_side_thickness/2 + internal_glass_overlap, framebody_z_dimension+frame_front_thickness])
+                translate([0, -frame_front_width/2 + frame_side_thickness/2 + internal_glass_overlap, framebody_z_dimension])
                     frameBevel(internal_length-2*internal_glass_overlap, frame_front_width, 100);             
                 
                 // teardrop moulding from svg
                 translate( [internal_length/2 + frame_front_width, 
                             frame_front_width/2 +internal_glass_overlap/2,
-                            framebody_z_dimension+frame_front_thickness])
+                            framebody_z_dimension])
                     rotate([90,0,-90])
-                        resize([frame_front_width, frame_deco_thickness, 0], auto=false)
+                        resize([frame_front_width, 0, 0], auto=[true,true,false])
                             linear_extrude(height = internal_length + 2*frame_front_width)
                                 import(file = "teardrop-shape.svg");
             }                
