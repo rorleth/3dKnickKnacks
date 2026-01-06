@@ -7,7 +7,7 @@ use <threads.scad>
 
 module strut()
 {
-    rotate([0,90,90])    
+    rotate([-90,0,0])    
         linear_extrude(height = baseThickness)
             polygon(points=[
                 [0,0],
@@ -25,12 +25,10 @@ rotate([0,90,0])
     cube([baseWidth*2/3, baseWidth, baseThickness], center = false);
 
 // add support struts
-translate([0, baseWidth/3, 0])
-    rotate([0,-90,0])
-        strut();
+translate([0, baseWidth/3-baseThickness, 0])
+    strut();
 translate([0, baseWidth*2/3, 0])
-    rotate([0,-90,0])
-        strut();
+    strut();
 
 // the pin to hold the twine spool
 translate([0, -baseWidth/2, baseThickness])
