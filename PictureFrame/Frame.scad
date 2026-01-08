@@ -28,11 +28,15 @@ caption_border_thickness = 1; // Thickness of border around caption
 
 /* [Hanger or Stand] */
 make_backing_insert = false; // Whether to make the backing insert
-hanger_option = "hole"; // [hole, tab, stand, platestand, none]
+hanger_option = "hole"; // [hole, tab, stand, platestand, magnets, none]
 hanger_nailhead_diameter = 5; // Diameter of the hanger cutout on the backing board
 hanger_nailbody_diameter = 2; // Diameter of the nail body that goes into the hanger cutout
 hanger_nailhead_thickness = 2; // Depth of the hanger cutout
 hanger_thickness = 2; // Thickness of the hanger structure
+magnet_support_thickness = 0.4; // Thickness of the material supporting the magnets if hanger_option = "magnets"
+magnet_diameter = 8; // Diameter of the magnets if hanger_option = "magnets"
+magnet_columns = 2; // Number of columns of magnets
+magnet_rows = 1; // Number of rows of magnets
 
 
 module stopthecustomizer() {
@@ -174,6 +178,18 @@ module backplateAssembly(length, width, negative)
                     rotate([90,0,0])
                         cylinder(h=backing_thickness, r=hanger_nailbody_diameter/2, center=true);
             }
+        }
+        if (hanger_option == "magnets" && !negative)
+        {
+            columnSpan = effective_width/(magnet_columns +1);
+            rowSpan = length/(magnet_rows +1);
+            magnet_punchhole_length = 100;
+            // add magnets
+            for (i = [0:magnet_columns-1])
+                for (j = [0:magnet_rows-1])
+                    translate([columnSpan + i * columnSpan, magnet_punchhole_length/2+magnet_support_thickness, length - (mounting_point_percentage * length - j * rowSpan)])
+                        rotate([90,0,0])
+                            cylinder(h=magnet_punchhole_length, r=magnet_diameter/2, center=true);
         }
     }
 }
