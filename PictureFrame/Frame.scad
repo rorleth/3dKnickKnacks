@@ -26,8 +26,8 @@ caption_font_size = 16;
 caption_elevation = 2; // How high the caption is elevated over the baseplate
 caption_border_thickness = 1; // Thickness of border around caption
 
-/* [Hanger] */
-make_backing_insert = false; // Whether to make a backing insert
+/* [Hanger or Stand] */
+make_backing_insert = false; // Whether to make the backing insert
 hanger_option = "hole"; // [hole, tab, stand, platestand, none]
 hanger_nailhead_diameter = 5; // Diameter of the hanger cutout on the backing board
 hanger_nailbody_diameter = 2; // Diameter of the nail body that goes into the hanger cutout
@@ -130,6 +130,8 @@ module backplateAssembly(length, width, negative)
     {
         union()
         {
+            // the main backplate which turns into a cutout when negative = true
+            // extrude a shape with a bevel to fit into the frame groove
             linear_extrude(height = negative ? length + backplate_play : length)
                 polygon([
                     [0, 0],
@@ -137,6 +139,14 @@ module backplateAssembly(length, width, negative)
                     [effective_width + backing_groove_depth, backing_thickness],
                     [effective_width, 0]
                 ]);
+            // add the groove along the top - extrud
+            rotate([0,90,0])
+            linear_extrude(height = effective_width)
+                polygon([
+                    [0, 0],
+                    [0, backing_thickness],
+                    [backing_groove_depth, backing_thickness],
+                ]);            
             if (hanger_option == "tab" && !negative)
             {
                 translate([effective_width/2, 0, mounting_point_percentage * length - hanger_nailhead_diameter])
