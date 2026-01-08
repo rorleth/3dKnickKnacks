@@ -28,7 +28,7 @@ caption_border_thickness = 1; // Thickness of border around caption
 
 /* [Hanger] */
 make_backing_insert = false; // Whether to make a backing insert
-hanger_option = "hole"; // [hole, tab, stand, none]
+hanger_option = "hole"; // [hole, tab, stand, platestand, none]
 hanger_nailhead_diameter = 5; // Diameter of the hanger cutout on the backing board
 hanger_nailbody_diameter = 2; // Diameter of the nail body that goes into the hanger cutout
 hanger_nailhead_thickness = 2; // Depth of the hanger cutout
@@ -102,6 +102,25 @@ module frameStand(stand_length)
                 [0,0],
                 [length_foot* cos(frame_angle_degrees),length_foot* sin(frame_angle_degrees)]
             ]);
+    if (hanger_option == "platestand")
+    {
+        // add triangular supports on each side
+        rotate([270-frame_angle_degrees,0,0])
+            linear_extrude(height = hanger_thickness)
+                polygon([
+                    [0,0],
+                    [art_width/2-hanger_thickness,0],
+                    [0, length_foot]
+                ]);
+        rotate([frame_angle_degrees-90,0,180])
+            translate([hanger_thickness, 0, -hanger_thickness])
+            linear_extrude(height = hanger_thickness)
+                polygon([
+                    [art_width/2-hanger_thickness,0],
+                    [0, length_foot],
+                    [0,0],
+                ]);
+    }
 }
 
 module backplateAssembly(length, width, negative)
@@ -124,7 +143,7 @@ module backplateAssembly(length, width, negative)
                     rotate([0,90,-90])
                         tabHanger(10, backing_thickness);
             }
-            if (hanger_option == "stand" && !negative)
+            if ((hanger_option == "stand" || hanger_option == "platestand") && !negative)
             {
                 translate([effective_width/2 + hanger_thickness/2, 0, length])                
                         frameStand(mounting_point_percentage * length);
