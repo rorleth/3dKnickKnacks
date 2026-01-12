@@ -6,14 +6,15 @@ use <roundedcube.scad>;
 art_width_inches = 7.1;
 art_height_inches = 5.1;
 frame_side_thickness = 10;  // Thickness of the sides of the frame in x/y direction
-frame_front_width = 13;     // Width of frame border
+external_overlap = 0;     // Width of frame border outside of the frame body
 internal_glass_overlap = 3; // How much the border overlaps the glass
 frame_front_thickness = 3;  // distance from front of frame to the glass
 frame_deco_thickness = 1;  // Thickness of the front decorative part of the frame
 glass_thickness = 3;   // Thickness of glass pane
 picture_thickness =1;  // Thickness of the picture
 foam_spacer_thickness = 1; // Thickness of foam spacer
-backing_thickness = 2;    // Thickness of backing board
+backing_thickness = 2.2;    // Thickness of backing board
+make_backing_tab = false; // Whether to make the have a tab to hold it closed
 
 /* [Decoration] */
 front_decoration= "svg"; // [svg, png, mould, none ]
@@ -33,10 +34,11 @@ hanger_nailhead_diameter = 5; // Diameter of the hanger cutout on the backing bo
 hanger_nailbody_diameter = 2; // Diameter of the nail body that goes into the hanger cutout
 hanger_nailhead_thickness = 2; // Depth of the hanger cutout
 hanger_thickness = 2; // Thickness of the hanger structure
-magnet_support_thickness = 0.4; // Thickness of the material supporting the magnets if hanger_option = "magnets"
+magnet_support_thickness = 0.2; // Thickness of the material supporting the magnets if hanger_option = "magnets"
 magnet_diameter = 8; // Diameter of the magnets if hanger_option = "magnets"
 magnet_columns = 2; // Number of columns of magnets
 magnet_rows = 1; // Number of rows of magnets
+
 
 
 module stopthecustomizer() {
@@ -49,7 +51,7 @@ backing_groove_depth = 1;  // Depth of the groove that the backing board slides 
 backplate_play = 0.1; // Extra space for the backing plate to fit easily
 hanger_length = 5; // Length of the hanger structure
 hanger_overlap = (hanger_nailhead_diameter - hanger_nailbody_diameter) /2; // Overlap of hanger backside to diameter of hanger cutout
-
+frame_front_width = external_overlap + frame_side_thickness + internal_glass_overlap; // Total Width of front piece
 art_width = art_width_inches * mm_per_inch;
 art_height = art_height_inches * mm_per_inch;   
 framebody_z_dimension = glass_thickness + picture_thickness + foam_spacer_thickness + backing_thickness;
@@ -58,6 +60,10 @@ mounting_point_percentage = 0.8; // percentage along the top edge to place the m
 frame_angle_degrees = 70; // to calculate the stand
 
 text_margin = 2; // margin between text and edge of caption plate
+
+tab_width = 5;
+tab_height = backing_thickness/2;
+tab_length = frame_side_thickness-1;
 
 // make a structure to hang the frame from, using two l-shaped plate with an inner
 // space of hanger_nailhead_diameter and depth hanger_nailhead_thickness, topped by a half-cylinder
@@ -187,11 +193,17 @@ module backplateAssembly(length, width, negative)
             // add magnets
             for (i = [0:magnet_columns-1])
                 for (j = [0:magnet_rows-1])
-                    translate([columnSpan + i * columnSpan, magnet_punchhole_length/2+magnet_support_thickness, length - (mounting_point_percentage * length - j * rowSpan)])
+                    translate([columnSpan + i * columnSpan, -(magnet_punchhole_length/2- backing_thickness+magnet_support_thickness), length - (mounting_point_percentage * length - j * rowSpan)])
                         rotate([90,0,0])
                             cylinder(h=magnet_punchhole_length, r=magnet_diameter/2, center=true);
         }
+        if (!negative && make_backing_tab)
+        {
+            translate([effective_width/2 - tab_width/2, 0, art_height])
+                cube([tab_width, tab_length, frame_side_thickness], center=false);
+        }
     }
+
 }
 
 // produces the backplate, negative = true makes the cutout for the frame which needs to a little bigger
@@ -372,6 +384,18 @@ if (!make_backing_insert)
             frameWithDecoration();    
         backplate(true); // cutout for the backplate
     }
+    if (make_backing_tab){
+        // add a tab to hold the backing in place
+        translate([tab_width/2, -(art_height/2 + frame_side_thickness/2 + tab_width/2), backing_thickness])
+            rotate([90,180,-90])
+                linear_extrude(height = tab_width)
+                    polygon([
+                        [0,0],
+                        [tab_length,0],
+                        [tab_length,tab_height]
+                    ]);
+    }
+
 } else {
     backplate(false);
 }
