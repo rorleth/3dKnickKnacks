@@ -1,6 +1,7 @@
 // Picture Frame Generator - Copyright 2026 by Robert Orleth
 use <caption.scad>;
-use <roundedcube.scad>;
+
+include <BOSL2/std.scad>
 
 /* [Frame] */
 art_width_inches = 7.1;
@@ -14,6 +15,7 @@ glass_thickness = 3;   // Thickness of glass pane
 picture_thickness =1;  // Thickness of the picture
 foam_spacer_thickness = 1; // Thickness of foam spacer
 backing_thickness = 2.2;    // Thickness of backing board
+rounding = 1.5; // Rounding radius for the frame corners
 make_backing_tab = false; // Whether to make the have a tab to hold it closed
 
 /* [Decoration] */
@@ -283,66 +285,71 @@ module frameSide(internal_length) {
 // as that needs cutting into the decoration.
 module frameWithDecoration()
 {
-    if (front_decoration == "svg" || front_decoration == "png")
+    intersection()
     {
-        // make the frame from two cubes, then overlay the front that holds the glass
-        // advantage: can overlay an svg on top of the front piece as this doesn't involve rotation
-        translate([0, 0, framebody_z_dimension/2])
-            union()
-            {
-                difference()
+        up((framebody_z_dimension + frame_front_thickness)/2)
+            cuboid([art_width + 2*frame_side_thickness, art_height + 2*frame_side_thickness, framebody_z_dimension+frame_front_thickness], edges=[TOP, LEFT, RIGHT],rounding=rounding);
+        if (front_decoration == "svg" || front_decoration == "png")
+        {
+            // make the frame from two cubes, then overlay the front that holds the glass
+            // advantage: can overlay an svg on top of the front piece as this doesn't involve rotation
+            translate([0, 0, framebody_z_dimension/2])
+                union()
                 {
-                    cube([art_width + 2*frame_side_thickness, art_height + 2*frame_side_thickness, framebody_z_dimension], center=true);
-                    cube([art_width , art_height, framebody_z_dimension], center=true);
-                }
-                translate([0, 0, framebody_z_dimension/2])
                     difference()
                     {
-                        cube([art_width + 2*frame_front_width, art_height + 2*frame_front_width, frame_front_thickness], center=true);
-                        cube([art_width - 2* internal_glass_overlap, art_height - 2* internal_glass_overlap, frame_front_thickness], center=true);
+                        cube([art_width + 2*frame_side_thickness, art_height + 2*frame_side_thickness, framebody_z_dimension], center=true);
+                        cube([art_width , art_height, framebody_z_dimension], center=true);
                     }
-                translate([0, 0, framebody_z_dimension/2 + frame_front_thickness/2])
-                    intersection()
-                    {
+                    translate([0, 0, framebody_z_dimension/2])
                         difference()
                         {
-                            cube([art_width + 2*frame_front_width, art_height + 2*frame_front_width, frame_deco_thickness], center=true);
-                            cube([art_width - 2* internal_glass_overlap, art_height - 2* internal_glass_overlap, frame_deco_thickness], center=true);
+                            cube([art_width + 2*frame_front_width, art_height + 2*frame_front_width, frame_front_thickness], center=true);
+                            cube([art_width - 2* internal_glass_overlap, art_height - 2* internal_glass_overlap, frame_front_thickness], center=true);
                         }
-                        if (front_decoration == "svg" && overlay_filename != "")
+                    translate([0, 0, framebody_z_dimension/2 + frame_front_thickness/2])
+                        intersection()
                         {
-                            translate([-art_width/2 - frame_front_width, -art_height/2 - frame_front_width, 0])
-                                linear_extrude(height = frame_deco_thickness, center=true)
-                                    resize([art_width + 2*frame_front_width, art_height + 2*frame_front_width, 0], auto=true)
-                                        import(file = overlay_filename);                
-                        } 
-                        else if (front_decoration == "png" && overlay_filename != "")
-                        {
-                            // not yet implemented
+                            difference()
+                            {
+                                cube([art_width + 2*frame_front_width, art_height + 2*frame_front_width, frame_deco_thickness], center=true);
+                                cube([art_width - 2* internal_glass_overlap, art_height - 2* internal_glass_overlap, frame_deco_thickness], center=true);
+                            }
+                            if (front_decoration == "svg" && overlay_filename != "")
+                            {
+                                translate([-art_width/2 - frame_front_width, -art_height/2 - frame_front_width, 0])
+                                    linear_extrude(height = frame_deco_thickness, center=true)
+                                        resize([art_width + 2*frame_front_width, art_height + 2*frame_front_width, 0], auto=true)
+                                            import(file = overlay_filename);                
+                            } 
+                            else if (front_decoration == "png" && overlay_filename != "")
+                            {
+                                // not yet implemented
+                            }
                         }
-                    }
-            }
-    } 
-    else if (front_decoration == "mould" || front_decoration == "none") 
-    {
-        // this asssembles the frame from four pieces of side each of which come with their aligned decorative front
-        union()
+                }
+        } 
+        else if (front_decoration == "mould" || front_decoration == "none") 
         {
-            // Top frame side
-            translate([0, (art_height + frame_side_thickness)/2, 0])
-                rotate([0,0,180])
-                    frameSide(art_width);
-            // Bottom frame side
-            translate([0, -(art_height + frame_side_thickness)/2, 0])
-                    frameSide(art_width);
-            // Left frame side
-            translate([-(art_width+ frame_side_thickness)/2, 0, 0])
-                rotate([0,0,-90])
-                    frameSide(art_height);
-            // Right frame side
-            translate([(art_width + frame_side_thickness)/2, 0, 0])
-                rotate([0,0,90])
-                    frameSide(art_height);
+            // this asssembles the frame from four pieces of side each of which come with their aligned decorative front
+            union()
+            {
+                // Top frame side
+                translate([0, (art_height + frame_side_thickness)/2, 0])
+                    rotate([0,0,180])
+                        frameSide(art_width);
+                // Bottom frame side
+                translate([0, -(art_height + frame_side_thickness)/2, 0])
+                        frameSide(art_width);
+                // Left frame side
+                translate([-(art_width+ frame_side_thickness)/2, 0, 0])
+                    rotate([0,0,-90])
+                        frameSide(art_height);
+                // Right frame side
+                translate([(art_width + frame_side_thickness)/2, 0, 0])
+                    rotate([0,0,90])
+                        frameSide(art_height);
+            }
         }
     }
 }
