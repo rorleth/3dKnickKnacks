@@ -151,7 +151,7 @@ module backplateAssembly(length, width, negative)
                     [effective_width + backing_groove_depth, backing_thickness],
                     [effective_width, 0]
                 ]);
-            // add the groove along the top - extrud
+            // add the groove along the top - extrude a triangle along the top
             rotate([0,90,0])
             linear_extrude(height = effective_width)
                 polygon([
@@ -173,18 +173,21 @@ module backplateAssembly(length, width, negative)
         }
         if (hanger_option == "hole" && !negative)
         {
+            mounthold_point = (1-mounting_point_percentage) * length;
             union()
             {
-                // cut the nail head hole
-                translate([effective_width/2, backing_thickness/2, mounting_point_percentage * length - hanger_nailhead_diameter])
+                // cut the nail body hole
+                translate([effective_width/2, backing_thickness/2, mounthold_point])
                     rotate([90,0,0])
                         cylinder(h=backing_thickness, r=hanger_nailhead_diameter/2, center=true);
-                translate([effective_width/2, backing_thickness/2, mounting_point_percentage * length - hanger_nailhead_diameter/2])
-                    rotate([90,0,0])
-                        cube([hanger_nailbody_diameter, hanger_nailhead_diameter/2 + hanger_nailbody_diameter/2, backing_thickness], center=true);
-                translate([effective_width/2, backing_thickness/2, mounting_point_percentage * length - hanger_nailbody_diameter/2])
+                // cut the nail head hole
+                translate([effective_width/2, backing_thickness/2, mounthold_point - hanger_nailbody_diameter/2])
                     rotate([90,0,0])
                         cylinder(h=backing_thickness, r=hanger_nailbody_diameter/2, center=true);
+                // cut the connection between those
+                translate([effective_width/2, backing_thickness/2, mounthold_point - hanger_nailhead_diameter/2])
+                    rotate([90,0,0])
+                        cube([hanger_nailbody_diameter, hanger_nailhead_diameter/2 + hanger_nailbody_diameter/2, backing_thickness], center=true);
             }
         }
         if (hanger_option == "magnets" && !negative)
